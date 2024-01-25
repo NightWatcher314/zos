@@ -4,7 +4,7 @@
 
 #[macro_use]
 pub mod console;
-mod lang_item;
+mod lang_items;
 mod syscall;
 
 #[no_mangle]
@@ -12,7 +12,7 @@ mod syscall;
 pub extern "C" fn _start() -> ! {
     clear_bss();
     exit(main());
-    panic!("Unreachable in _start!");
+    panic!("unreachable after sys_exit!");
 }
 
 #[linkage = "weak"]
@@ -26,15 +26,22 @@ fn clear_bss() {
         fn start_bss();
         fn end_bss();
     }
-    (start_bss as usize..end_bss as usize).for_each(|a| unsafe {
-        (a as *mut u8).write_volatile(0);
+    (start_bss as usize..end_bss as usize).for_each(|addr| unsafe {
+        (addr as *mut u8).write_volatile(0);
     });
 }
 
-pub fn write(fd: usize, buffer: &[u8]) -> isize {
-    syscall::sys_write(fd, buffer)
-}
+use syscall::*;
 
-pub fn exit(code: i32) -> isize {
-    syscall::sys_exit(code)
+pub fn write(fd: usize, buf: &[u8]) -> isize {
+    sys_write(fd, buf)
+}
+pub fn exit(exit_code: i32) -> isize {
+    sys_exit(exit_code)
+}
+pub fn yield_() -> isize {
+    sys_yield()
+}
+pub fn get_time() -> isize {
+    sys_get_time()
 }
