@@ -5,6 +5,7 @@
 mod console;
 mod batch;
 mod lang_item;
+mod loader;
 mod sbi;
 mod sync;
 mod syscall;
