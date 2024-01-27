@@ -2,8 +2,6 @@ mod context;
 mod switch;
 mod task;
 
-use core::num;
-
 use crate::loader::init_task_cx;
 use crate::sync::UPSafeCell;
 pub use context::TaskContext;
@@ -56,7 +54,48 @@ fn get_num_task_from_kernel() -> usize {
     }
 }
 
+fn run_next_task() {
+    TASK_MANAGER.run_next_task();
+}
+
+fn mark_current_exited() {
+    TASK_MANAGER.mark_current_exited();
+}
+
+fn mark_current_suspended() {
+    TASK_MANAGER.mark_current_suspended();
+}
+
+pub fn run_first_task() {
+    TASK_MANAGER.run_first_task();
+}
+
+pub fn suspend_current_and_run_next() {
+    mark_current_suspended();
+    run_next_task();
+}
+
+pub fn exit_current_and_run_next() {
+    mark_current_exited();
+    run_next_task();
+}
+
 impl TaskManager {
+    fn run_first_task(&self) -> ! {
+        let mut inner = self.inner.exclusive_access();
+        let next = 0;
+        inner.current_task = next;
+        let current = inner.current_task;
+        inner.tcbs[next].task_status = TaskStatus::Running;
+        let mut current_task_cx_ptr = &mut TaskContext::default() as *mut TaskContext;
+        let next_task_cx_ptr = &inner.tcbs[next].task_cx as *const TaskContext;
+        drop(inner);
+        unsafe {
+            switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
+        }
+        panic!("unreachable in first task")
+    }
+
     fn mark_current_exited(&self) {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
@@ -67,5 +106,31 @@ impl TaskManager {
         let mut inner = self.inner.exclusive_access();
         let current = inner.current_task;
         inner.tcbs[current].task_status = TaskStatus::Ready;
+    }
+
+    fn run_next_task(&self) {
+        if let Some(next) = self.get_next_task() {
+            let mut inner = self.inner.exclusive_access();
+            inner.current_task = next;
+            let current = inner.current_task;
+            inner.tcbs[next].task_status = TaskStatus::Running;
+            let current_task_cx_ptr = &mut inner.tcbs[current].task_cx as *mut TaskContext;
+            let next_task_cx_ptr = &inner.tcbs[next].task_cx as *const TaskContext;
+            drop(inner);
+            unsafe {
+                switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
+            }
+        } else {
+            panic!("No task to run!");
+        }
+    }
+
+    fn get_next_task(&self) -> Option<usize> {
+        let inner = self.inner.exclusive_access();
+        let num_task = inner.num_task;
+        let current = inner.current_task;
+        (current + 1..current + num_task + 1)
+            .map(|id| id % num_task)
+            .find(|id| inner.tcbs[*id].task_status == TaskStatus::Ready)
     }
 }

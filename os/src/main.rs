@@ -20,7 +20,8 @@ pub fn rust_main() -> ! {
     clear_bss();
     trap::init();
     loader::init();
-    loader::run_next_app();
+    task::run_first_task();
+    loop {}
     // test_code();
 }
 

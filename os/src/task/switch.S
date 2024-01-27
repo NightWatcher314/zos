@@ -22,7 +22,7 @@ __switch:
     LOAD_SN   %n
     .set      n, n + 1
     .endr
-    ld        ra.0(a1)
+    ld        ra,0(a1)
     ld        sp,8(a1)
 
     ret
