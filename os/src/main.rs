@@ -8,6 +8,7 @@ mod loader;
 mod sbi;
 mod sync;
 mod syscall;
+mod task;
 mod trap;
 use core::arch::global_asm;
 
