@@ -141,3 +141,10 @@ pub fn load_apps() {
 fn get_base_i(app_id: usize) -> usize {
     APP_BASE_ADDRESS + app_id * APP_SIZE_LIMIT
 }
+
+pub fn init_task_cx(task_id: usize) -> usize {
+    KERNEL_STACK.push_context(TrapContext::app_init_context(
+        get_base_i(task_id),
+        USER_STACK.get_sp(),
+    )) as *const _ as usize
+}

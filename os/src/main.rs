@@ -4,7 +4,7 @@
 #[macro_use]
 mod console;
 mod lang_item;
-mod loader;
+pub mod loader;
 mod sbi;
 mod sync;
 mod syscall;
