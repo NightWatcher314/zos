@@ -3,11 +3,12 @@
 #![feature(panic_info_message)]
 #[macro_use]
 mod console;
-mod batch;
 mod lang_item;
+pub mod loader;
 mod sbi;
 mod sync;
 mod syscall;
+mod task;
 mod trap;
 use core::arch::global_asm;
 
@@ -18,8 +19,8 @@ global_asm!(include_str!("./link_app.S"));
 pub fn rust_main() -> ! {
     clear_bss();
     trap::init();
-    batch::init();
-    batch::run_next_app();
+    loader::init();
+    loader::run_next_app();
     // test_code();
 }
 

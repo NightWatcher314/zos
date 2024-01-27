@@ -14,7 +14,7 @@
 
 mod context;
 
-use crate::batch::run_next_app;
+use crate::loader::run_next_app;
 use crate::syscall::syscall;
 use core::arch::global_asm;
 use riscv::register::{
@@ -55,9 +55,10 @@ pub fn trap_handler(cx: &mut TrapContext) -> &mut TrapContext {
         }
         _ => {
             panic!(
-                "Unsupported trap {:?}, stval = {:#x}!",
+                "Unsupported trap {:?}, stval = {:#x}, sp = {:#x}",
                 scause.cause(),
-                stval
+                stval,
+                cx.x[2],
             );
         }
     }

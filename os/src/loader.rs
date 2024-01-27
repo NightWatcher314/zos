@@ -64,25 +64,6 @@ impl AppManager {
             );
         }
     }
-
-    fn load_app(&self, app_id: usize) {
-        if app_id > self.num_app {
-            println!("All applications completed!");
-            shutdown(false);
-        }
-        println!("[kernel] loading app {}", app_id);
-        unsafe {
-            core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, APP_SIZE_LIMIT).fill(0);
-            let app_src = core::slice::from_raw_parts(
-                self.app_start[app_id] as *const u8,
-                self.app_start[app_id + 1] - self.app_start[app_id],
-            );
-            let app_dst =
-                core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, app_src.len());
-            app_dst.copy_from_slice(app_src);
-            asm!("fence.i");
-        }
-    }
 }
 
 lazy_static! {
@@ -108,6 +89,7 @@ lazy_static! {
 
 pub fn init() {
     print_app_info();
+    load_apps();
 }
 
 pub fn print_app_info() {
@@ -117,9 +99,6 @@ pub fn print_app_info() {
 pub fn run_next_app() -> ! {
     let mut app_manager = APP_MANAGER.exclusive_access();
     let current_app = app_manager.current_app;
-    unsafe {
-        app_manager.load_app(current_app);
-    }
     app_manager.current_app += 1;
     drop(app_manager);
     // before this we have to drop local variables related to resources manually
@@ -129,9 +108,43 @@ pub fn run_next_app() -> ! {
     }
     unsafe {
         __restore(KERNEL_STACK.push_context(TrapContext::app_init_context(
-            APP_BASE_ADDRESS,
+            get_base_i(current_app),
             USER_STACK.get_sp(),
         )) as *const _ as usize);
     }
     panic!("Unreachable in batch::run_current_app!");
+}
+
+pub fn load_apps() {
+    extern "C" {
+        fn _num_app();
+    }
+    let num_app_ptr = _num_app as usize as *const usize;
+    let num_app = unsafe { num_app_ptr.read_volatile() };
+    let app_start = unsafe { core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1) };
+    unsafe {
+        asm!("fence.i");
+    }
+    for i in 0..num_app {
+        let base_i = get_base_i(i);
+        (base_i..base_i + APP_SIZE_LIMIT).for_each(|addr| {
+            unsafe { (addr as *mut u8).write_volatile(0) };
+        });
+        let src = unsafe {
+            core::slice::from_raw_parts(app_start[i] as *const u8, app_start[i + 1] - app_start[i])
+        };
+        let dst = unsafe { core::slice::from_raw_parts_mut(base_i as *mut u8, src.len()) };
+        dst.copy_from_slice(src);
+    }
+}
+
+fn get_base_i(app_id: usize) -> usize {
+    APP_BASE_ADDRESS + app_id * APP_SIZE_LIMIT
+}
+
+pub fn init_task_cx(task_id: usize) -> usize {
+    KERNEL_STACK.push_context(TrapContext::app_init_context(
+        get_base_i(task_id),
+        USER_STACK.get_sp(),
+    )) as *const _ as usize
 }
