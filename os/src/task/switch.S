@@ -16,7 +16,6 @@ __switch:
     SAVE_SN   %n
     .set      n, n + 1
     .endr
-
     .set      n, 0
     .rept     12
     LOAD_SN   %n
@@ -24,5 +23,4 @@ __switch:
     .endr
     ld        ra,0(a1)
     ld        sp,8(a1)
-
     ret
