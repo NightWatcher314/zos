@@ -6,6 +6,7 @@ mod console;
 mod config;
 mod lang_item;
 pub mod loader;
+mod mm;
 mod sbi;
 mod sync;
 mod syscall;
@@ -13,6 +14,7 @@ mod task;
 mod timer;
 mod trap;
 use core::arch::global_asm;
+extern crate alloc;
 
 global_asm!(include_str!("./entry.asm"));
 global_asm!(include_str!("./link_app.S"));
