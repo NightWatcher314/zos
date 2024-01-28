@@ -2,8 +2,9 @@ mod context;
 mod switch;
 mod task;
 
-use crate::loader::init_task_cx;
+use crate::sbi::shutdown;
 use crate::sync::UPSafeCell;
+use crate::{loader::init_task_cx, trap::TrapContext};
 pub use context::TaskContext;
 use lazy_static::lazy_static;
 use task::{TaskControlBlock, TaskStatus};
@@ -83,17 +84,16 @@ pub fn exit_current_and_run_next() {
 impl TaskManager {
     fn run_first_task(&self) -> ! {
         let mut inner = self.inner.exclusive_access();
-        let next = 0;
-        inner.current_task = next;
-        let current = inner.current_task;
-        inner.tcbs[next].task_status = TaskStatus::Running;
-        let mut current_task_cx_ptr = &mut TaskContext::default() as *mut TaskContext;
-        let next_task_cx_ptr = &inner.tcbs[next].task_cx as *const TaskContext;
+        let task0 = &mut inner.tcbs[0];
+        task0.task_status = TaskStatus::Running;
+        let next_task_cx_ptr = &task0.task_cx as *const TaskContext;
         drop(inner);
+        let mut _unused = TaskContext::default();
+        // before this, we should drop local variables that must be dropped manually
         unsafe {
-            switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
+            switch::__switch(&mut _unused as *mut TaskContext, next_task_cx_ptr);
         }
-        panic!("unreachable in first task")
+        panic!("unreachable in run_first_task!");
     }
 
     fn mark_current_exited(&self) {
@@ -111,8 +111,8 @@ impl TaskManager {
     fn run_next_task(&self) {
         if let Some(next) = self.get_next_task() {
             let mut inner = self.inner.exclusive_access();
-            inner.current_task = next;
             let current = inner.current_task;
+            inner.current_task = next;
             inner.tcbs[next].task_status = TaskStatus::Running;
             let current_task_cx_ptr = &mut inner.tcbs[current].task_cx as *mut TaskContext;
             let next_task_cx_ptr = &inner.tcbs[next].task_cx as *const TaskContext;
@@ -121,7 +121,8 @@ impl TaskManager {
                 switch::__switch(current_task_cx_ptr, next_task_cx_ptr);
             }
         } else {
-            panic!("No task to run!");
+            println!("All tasks are exited, shutting down...");
+            shutdown(false);
         }
     }
 

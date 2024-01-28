@@ -1,4 +1,5 @@
 riscv64*/*
 .vscode/*
+.idea/*
 */target/*
 user1/*

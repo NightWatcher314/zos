@@ -3,12 +3,14 @@
 #![feature(panic_info_message)]
 #[macro_use]
 mod console;
+mod config;
 mod lang_item;
 pub mod loader;
 mod sbi;
 mod sync;
 mod syscall;
 mod task;
+mod timer;
 mod trap;
 use core::arch::global_asm;
 
@@ -20,6 +22,8 @@ pub fn rust_main() -> ! {
     clear_bss();
     trap::init();
     loader::init();
+    trap::enable_timer_interrupt();
+    timer::set_next_trigger();
     task::run_first_task();
     loop {}
     // test_code();
