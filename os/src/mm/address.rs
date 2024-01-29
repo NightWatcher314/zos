@@ -1,3 +1,5 @@
+use core::ops::{Add, Sub};
+
 use crate::config::*;
 
 const PA_WIDTH_SV39: usize = 56;
@@ -6,16 +8,16 @@ const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
 const VA_WIDTH_SV39: usize = 39;
 const VPN_WIDTH_SV39: usize = VA_WIDTH_SV39 - PAGE_SIZE_BITS;
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct PhysAddr(pub usize);
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct VirtAddr(pub usize);
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct PhysPageNum(pub usize);
 
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct VirtPageNum(pub usize);
 
 impl From<usize> for PhysAddr {
@@ -92,14 +94,85 @@ impl From<VirtPageNum> for VirtAddr {
     }
 }
 
+impl Add<usize> for PhysAddr {
+    type Output = Self;
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl Add<usize> for VirtAddr {
+    type Output = Self;
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl Add<usize> for PhysPageNum {
+    type Output = Self;
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl Add<usize> for VirtPageNum {
+    type Output = Self;
+    fn add(self, rhs: usize) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
+impl Sub<usize> for PhysAddr {
+    type Output = Self;
+    fn sub(self, rhs: usize) -> Self::Output {
+        Self(self.0 - rhs)
+    }
+}
+
+impl Sub<usize> for VirtAddr {
+    type Output = Self;
+    fn sub(self, rhs: usize) -> Self::Output {
+        Self(self.0 - rhs)
+    }
+}
+
+impl Sub<usize> for PhysPageNum {
+    type Output = Self;
+    fn sub(self, rhs: usize) -> Self::Output {
+        Self(self.0 - rhs)
+    }
+}
+
+impl Sub<usize> for VirtPageNum {
+    type Output = Self;
+    fn sub(self, rhs: usize) -> Self::Output {
+        Self(self.0 - rhs)
+    }
+}
+
 impl PhysAddr {
     pub fn page_offset(&self) -> usize {
         self.0 & ((1 << PAGE_SIZE_BITS) - 1)
+    }
+
+    pub fn page_number_floor(&self) -> PhysPageNum {
+        (self.0 >> PAGE_SIZE_BITS).into()
+    }
+
+    pub fn page_number_ceil(&self) -> PhysPageNum {
+        ((self.0 + (1 << PAGE_SIZE_BITS) - 1) >> PAGE_SIZE_BITS).into()
     }
 }
 
 impl VirtAddr {
     pub fn page_offset(&self) -> usize {
         self.0 & ((1 << PAGE_SIZE_BITS) - 1)
+    }
+}
+
+impl PhysPageNum {
+    pub fn get_bytes_array(&self) -> &'static mut [u8] {
+        let pa: PhysAddr = (*self).into();
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE) }
     }
 }
