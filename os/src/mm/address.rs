@@ -1,6 +1,6 @@
-use core::ops::{Add, Sub};
-
+use super::page_table::*;
 use crate::config::*;
+use core::ops::{Add, Sub};
 
 const PA_WIDTH_SV39: usize = 56;
 const PPN_WIDTH_SV39: usize = PA_WIDTH_SV39 - PAGE_SIZE_BITS;
@@ -171,8 +171,25 @@ impl VirtAddr {
 }
 
 impl PhysPageNum {
+    pub fn get_pte_array(&self) -> &'static mut [PageTableEntry] {
+        let pa: PhysAddr = (*self).into();
+        unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut PageTableEntry, PAGE_SIZE / 8) }
+    }
+
     pub fn get_bytes_array(&self) -> &'static mut [u8] {
         let pa: PhysAddr = (*self).into();
         unsafe { core::slice::from_raw_parts_mut(pa.0 as *mut u8, PAGE_SIZE) }
+    }
+}
+
+impl VirtPageNum {
+    pub fn indexes(&self) -> [usize; 3] {
+        let mut vpn = self.0;
+        let mut idx = [0usize; 3];
+        for i in (0..3).rev() {
+            idx[i] = vpn & 511;
+            vpn >>= 9;
+        }
+        idx
     }
 }
