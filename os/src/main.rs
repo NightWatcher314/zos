@@ -1,8 +1,11 @@
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
 #[macro_use]
 mod console;
+#[macro_use]
+extern crate bitflags;
 mod config;
 mod lang_item;
 pub mod loader;
@@ -20,14 +23,17 @@ global_asm!(include_str!("./entry.asm"));
 global_asm!(include_str!("./link_app.S"));
 
 #[no_mangle]
-pub fn rust_main() -> ! {
-    clear_bss();
-    trap::init();
-    loader::init();
-    trap::enable_timer_interrupt();
-    timer::set_next_trigger();
-    task::run_first_task();
-    loop {}
+pub fn rust_main() {
+    // clear_bss();
+    // trap::init();
+    print!("heap init start\n");
+    mm::init_heap();
+    print!("heap init end\n");
+    mm::heap_test();
+    // loader::init();
+    // trap::enable_timer_interrupt();
+    // timer::set_next_trigger();
+    // task::run_first_task();
     // test_code();
 }
 
