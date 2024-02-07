@@ -1,6 +1,6 @@
 use crate::config::MEMORY_END;
 use crate::mm::address::*;
-use crate::sync::UPSafeCell;
+use crate::utils::UPSafeCell;
 use alloc::vec::Vec;
 use lazy_static::lazy_static;
 

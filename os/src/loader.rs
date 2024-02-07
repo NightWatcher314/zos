@@ -1,6 +1,6 @@
 use crate::config::*;
-use crate::sync::UPSafeCell;
 use crate::trap::TrapContext;
+use crate::utils::UPSafeCell;
 use core::arch::asm;
 use lazy_static::lazy_static;
 

@@ -11,11 +11,11 @@ mod lang_item;
 pub mod loader;
 mod mm;
 mod sbi;
-mod sync;
 mod syscall;
 mod task;
 mod timer;
 mod trap;
+mod utils;
 use core::arch::global_asm;
 
 use crate::sbi::shutdown;

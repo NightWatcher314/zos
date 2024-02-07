@@ -3,7 +3,7 @@ mod switch;
 mod task;
 
 use crate::sbi::shutdown;
-use crate::sync::UPSafeCell;
+use crate::utils::UPSafeCell;
 use crate::{loader::init_task_cx, trap::TrapContext};
 pub use context::TaskContext;
 use lazy_static::lazy_static;
